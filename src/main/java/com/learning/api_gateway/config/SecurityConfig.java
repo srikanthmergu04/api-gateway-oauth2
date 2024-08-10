@@ -2,6 +2,8 @@ package com.learning.api_gateway.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.GrantedAuthority;
@@ -10,7 +12,13 @@ import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMap
 import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2UserAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoders;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverterAdapter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import reactor.core.publisher.Mono;
 
 import java.util.HashSet;
 import java.util.List;
@@ -31,7 +39,11 @@ public class SecurityConfig {
                         .pathMatchers("/hello").hasRole("admin")
                         .anyExchange().authenticated()
                 )
-                .oauth2Login(withDefaults());
+                .oauth2Login(withDefaults())
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt
+                                .jwtAuthenticationConverter(grantedAuthoritiesExtractor())
+                        ));
 
         return http.build();
     }
@@ -63,6 +75,19 @@ public class SecurityConfig {
 
             return mappedAuthorities.get();
         };
+    }
+
+    @Bean
+    public ReactiveJwtDecoder jwtDecoder() {
+        return ReactiveJwtDecoders.fromIssuerLocation("http://localhost:8080/realms/myrealm");
+    }
+
+    Converter<Jwt, Mono<AbstractAuthenticationToken>> grantedAuthoritiesExtractor() {
+        JwtAuthenticationConverter jwtAuthenticationConverter =
+                new JwtAuthenticationConverter();
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter
+                (new GrantedAuthoritiesExtractor());
+        return new ReactiveJwtAuthenticationConverterAdapter(jwtAuthenticationConverter);
     }
 
 }

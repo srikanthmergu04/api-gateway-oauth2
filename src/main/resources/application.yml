@@ -22,3 +22,8 @@ spring:
             user-info-uri: http://localhost:8080/realms/myrealm/protocol/openid-connect/userinfo
             user-name-attribute: preferred_username
             jwk-set-uri: http://localhost:8080/realms/myrealm/protocol/openid-connect/certs
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/myrealm
+          user-name-attribute: preferred_username
+          jwk-set-uri: http://localhost:8080/realms/myrealm/protocol/openid-connect/certs
